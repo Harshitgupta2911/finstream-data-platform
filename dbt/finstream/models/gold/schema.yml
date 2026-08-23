@@ -1,0 +1,101 @@
+version: 2
+
+models:
+
+  - name: dim_customer
+    description: "Customer dimension containing customer profile information."
+
+    columns:
+      - name: customer_id
+        description: "Unique identifier for a customer."
+        tests:
+          - not_null
+          - unique
+
+  - name: dim_account
+    description: "Account dimension containing customer account information."
+
+    columns:
+      - name: account_id
+        description: "Unique identifier for an account."
+        tests:
+          - not_null
+          - unique
+
+      - name: customer_id
+        description: "Customer associated with the account."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customer')
+              field: customer_id
+
+  - name: dim_merchant
+    description: "Merchant dimension containing merchant information."
+
+    columns:
+      - name: merchant_id
+        description: "Unique identifier for a merchant."
+        tests:
+          - not_null
+          - unique
+
+  - name: dim_date
+    description: "Calendar dimension used for time-based analysis."
+
+    columns:
+      - name: date_key
+        description: "Integer representation of the calendar date."
+        tests:
+          - not_null
+          - unique
+
+  - name: fact_transaction
+    description: "Central transaction fact table containing individual financial transactions."
+
+    columns:
+      - name: transaction_id
+        description: "Unique transaction identifier."
+        tests:
+          - not_null
+          - unique
+
+      - name: account_id
+        description: "Account associated with the transaction."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_account')
+              field: account_id
+
+      - name: customer_id
+        description: "Customer associated with the transaction."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customer')
+              field: customer_id
+
+      - name: date_key
+        description: "Date dimension key."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_key
+
+  - name: fact_transaction_event
+    description: "Transaction lifecycle events such as initiated, authorized, completed, failed, and reversed."
+
+    columns:
+      - name: event_id
+        description: "Unique event identifier."
+        tests:
+          - not_null
+          - unique
+
+      - name: transaction_id
+        description: "Transaction associated with the event."
+        tests:
+          - not_null      - name: fact_exchange_rate
+    description: "Exchange rate facts used for currency-related analysis."

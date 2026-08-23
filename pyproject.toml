@@ -1,0 +1,38 @@
+[project]
+name = "finstream-data-platform"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Harshitgupta2911", email = "harshitgupta29115@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "apache-airflow-providers-amazon>=9.34.0",
+    "apache-airflow-providers-databricks>=7.18.1",
+    "boto3>=1.43.71",
+    "databricks-sql-connector>=4.4.0",
+    "dbt-core>=1.12.2",
+    "dbt-databricks>=1.10.9",
+    "faker>=40.36.0",
+    "google-genai>=2.19.0",
+    "kafka-python>=3.0.11",
+    "openai>=3.3.1",
+    "pandas>=3.0.5",
+    "pyarrow>=25.0.1",
+    "python-dotenv>=1.2.2",
+    "scikit-learn>=1.9.0",
+    "streamlit>=1.62.0",
+]
+
+[project.scripts]
+finstream-data-platform = "finstream_data_platform:main"
+
+[build-system]
+requires = ["uv_build>=0.12.1,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.workspace]
+members = [
+    "airflow",
+]

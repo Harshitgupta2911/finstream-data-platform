@@ -1,0 +1,23 @@
+version: 2
+
+models:
+
+  - name: customer_transaction_summary
+    description: >
+      Customer-level analytical mart containing transaction volume,
+      transaction value, success/failure counts, and last transaction date.
+
+  - name: daily_transaction_metrics
+    description: >
+      Daily transaction metrics used for monitoring transaction volume,
+      value, and success/failure trends.
+
+  - name: transaction_failure_analysis
+    description: >
+      Analytical mart used to analyze failed transaction events
+      and their failure reasons.
+
+  - name: merchant_performance
+    description: >
+      Merchant-level analytical mart containing transaction volume,
+      transaction value, and transaction success/failure metrics.

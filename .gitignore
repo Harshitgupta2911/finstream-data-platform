@@ -1,0 +1,51 @@
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Generated data
+Data/raw/
+Data/Delta/
+
+# Data files
+*.parquet
+*.jsonl
+
+# Kafka runtime data
+kafka_data/
+**/kafka_data/
+
+# Streaming checkpoints
+**/checkpoints/
+**/checkpoint/
+
+# Airflow
+_airflow/logs/
+_airflow/logs/**
+_airflow/airflow.cfg
+_airflow/webserver_config.py
+
+# Databricks
+.databricks/
+**/.databricks/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+#DBT
+dbt/logs/
+dbt/finstream/logs/
+# dbt credentials
+dbt/finstream/profiles.yml

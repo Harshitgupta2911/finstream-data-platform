@@ -1,0 +1,28 @@
+version: 2
+
+sources:
+  - name: silver
+    description: "Cleaned and validated financial data produced by the Databricks Silver layer."
+
+    database: finstream_data_pipeline
+    schema: silver
+
+    tables:
+
+      - name: customers
+        description: "Customer master data."
+
+      - name: accounts
+        description: "Customer account information."
+
+      - name: merchants
+        description: "Merchant master and classification data."
+
+      - name: exchange_rates
+        description: "Currency exchange rate information."
+
+      - name: transactions
+        description: "Financial transaction records."
+
+      - name: transaction_events
+        description: "Lifecycle events associated with financial transactions."
