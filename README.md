@@ -1,190 +1,237 @@
 # FinStream Data Platform
 
-An end-to-end Financial Data Engineering + AI platform built using AWS S3, Databricks, Apache Kafka, dbt, Apache Airflow, and Generative AI.
+> An end-to-end Financial Data Engineering and AI platform built using AWS S3, Databricks, Apache Kafka, dbt, Apache Airflow, Machine Learning, and Generative AI.
 
 ---
 
-## Overview
+## 📌 Overview
 
-FinStream is an end-to-end financial data platform designed to simulate a production-oriented fintech data pipeline.
+**FinStream** is an end-to-end financial data platform designed to simulate a production-oriented fintech data pipeline.
 
-The platform supports both batch and streaming data pipelines and follows the Medallion Architecture:
+The platform supports both **batch and streaming data pipelines** and follows a layered data architecture:
 
-Batch / Streaming Sources
-        |
-        v
-      Bronze
-        |
-        v
-      Silver
-        |
-        v
-       Gold
-        |
-        +-------------------+
-        |                   |
-        v                   v
- Natural Language       AI Incident
-      to SQL             Summarizer
-        |                   |
-        v                   v
-   Analytics            Incident
-    Queries            Explanation
+```text
+Data Sources
+     ↓
+AWS S3 / Apache Kafka
+     ↓
+Databricks
+     ↓
+Bronze
+     ↓
+Silver
+     ↓
+dbt Staging
+     ↓
+dbt Marts / Gold
+     ↓
+Analytics + AI
+```
 
-The project contains two separate AI layers:
+The platform contains **two independent AI layers**:
 
-1. Natural Language to SQL
-2. AI Incident Summarizer
+### AI Layer 1 — Natural Language → SQL
 
----
+Allows users to ask questions about financial data using natural language and converts those questions into SQL queries that can be executed against the Gold analytical layer.
 
-## Architecture
+### AI Layer 2 — AI Incident Summarizer
 
-                         FINSTREAM DATA PLATFORM
-
-       BATCH DATA                                      STREAMING DATA
-           |                                                  |
-           v                                                  v
-   Synthetic Data                                      Transaction
-     Generator                                           Producer
-           |                                                  |
-           v                                                  v
-        AWS S3                                          Apache Kafka
-           |                                      finstream.transactions
-           |                                                  |
-           |                                                  v
-           |                                           Kafka Consumer
-           |                                                  |
-           |                                                  v
-           +------------------------------------------> AWS S3
-                                                          |
-                                                          v
-                                                    Databricks
-                                                          |
-                                                          v
-                                                     BRONZE
-                                                          |
-                                                          v
-                                                     SILVER
-                                                          |
-                                                          v
-                                                       GOLD
-                                                          |
-                                  +-----------------------+----------------------+
-                                  |                                              |
-                                  v                                              v
-                           AI LAYER 1                                    AI LAYER 2
-                      Natural Language to SQL                         AI Incident Summarizer
-                                  |                                              |
-                                  v                                              v
-                            SQL Queries                                  Incident Summary
-                                  |
-                                  v
-                           Analytics Results
-
-                              Apache Airflow
-                             Orchestration Layer
+Uses anomaly-detection results and data-quality information to generate human-readable explanations of detected incidents and stores the generated incident information in the AI layer.
 
 ---
 
-## Technology Stack
+# 🏗️ System Architecture
 
-| Category | Technology |
-|---|---|
-| Programming | Python |
-| Cloud Storage | AWS S3 |
-| Data Processing | Databricks / Apache Spark |
-| Data Warehouse / Lakehouse | Databricks |
-| Streaming | Apache Kafka |
-| Containerization | Docker / Docker Compose |
-| Transformation | dbt |
-| Orchestration | Apache Airflow |
-| Data Format | Parquet |
-| Synthetic Data | Faker |
-| Data Quality | Python / SQL |
-| Anomaly Detection | Isolation Forest |
-| Generative AI | Google Gemini |
-| Version Control | Git / GitHub |
-| Configuration | python-dotenv |
+```mermaid
+flowchart TB
 
----
+    BATCH["Batch Data<br/>Synthetic Data Generator / Faker"]
 
-## Data Sources
+    STREAM["Streaming Data<br/>Transaction Producer"]
 
-FinStream uses synthetic financial data generated using Faker.
+    S3RAW["AWS S3<br/>Raw Data"]
 
-The platform contains the following datasets:
+    KAFKA["Apache Kafka<br/>finstream.transactions"]
 
-### Customers
+    KAFKAS3["Kafka → S3<br/>Streaming Ingestion"]
 
-Customer master information.
+    DATABRICKS["Databricks"]
 
-Important fields include:
+    BRONZE["🥉 Bronze Layer<br/>Raw / Ingested Data"]
 
-- customer_id
-- first_name
-- last_name
-- email
-- phone
-- date_of_birth
-- country
-- created_at
-- customer_status
+    SILVER["🥈 Silver Layer<br/>Cleaned & Validated Data"]
 
-### Accounts
+    STAGING["dbt Staging Layer<br/>Source Preparation"]
 
-Financial account information associated with customers.
+    MARTS["dbt Marts Layer<br/>Business Models"]
 
-### Merchants
+    GOLD["🥇 Gold Layer<br/>Business / Analytics Data"]
 
-Merchant information associated with transactions.
+    NLSQL["AI Layer 1<br/>Natural Language → SQL"]
 
-### Transactions
+    RESULTS["SQL Queries<br/>Analytics Results"]
 
-Financial transaction records.
+    QUALITY["Data Quality Checks"]
 
-Important fields include:
+    ANOMALY["Anomaly Detection<br/>Isolation Forest"]
 
-- transaction_id
-- account_id
-- merchant_id
-- transaction_timestamp
-- transaction_type
-- amount
-- currency
-- transaction_status
-- payment_method
-- description
+    INCIDENT["AI Layer 2<br/>AI Incident Summarizer"]
 
-### Transaction Events
+    SUMMARY["AI Incident Summary<br/>AI Incident Table"]
 
-Events associated with the lifecycle of transactions.
+    AIRFLOW["Apache Airflow<br/>Orchestration"]
 
-Examples include:
+    BATCH --> S3RAW
 
-- initiated
-- authorized
-- completed
-- reversed
-- failed
+    STREAM --> KAFKA
 
-### Exchange Rates
+    KAFKA --> KAFKAS3
 
-Currency exchange-rate information used for financial transformations and analysis.
+    KAFKAS3 --> S3RAW
+
+    S3RAW --> DATABRICKS
+
+    DATABRICKS --> BRONZE
+
+    BRONZE --> SILVER
+
+    SILVER --> STAGING
+
+    STAGING --> MARTS
+
+    MARTS --> GOLD
+
+    GOLD --> NLSQL
+
+    NLSQL --> RESULTS
+
+    GOLD --> QUALITY
+
+    QUALITY --> ANOMALY
+
+    ANOMALY --> INCIDENT
+
+    INCIDENT --> SUMMARY
+
+    AIRFLOW -. Orchestrates .-> DATABRICKS
+    AIRFLOW -. Orchestrates .-> STAGING
+    AIRFLOW -. Orchestrates .-> MARTS
+    AIRFLOW -. Orchestrates .-> QUALITY
+    AIRFLOW -. Orchestrates .-> ANOMALY
+    AIRFLOW -. Orchestrates .-> INCIDENT
+```
 
 ---
 
-# Medallion Architecture
+# 🔄 End-to-End Data Flow
 
-FinStream follows the Bronze → Silver → Gold architecture.
+```mermaid
+flowchart LR
 
-## Bronze Layer
+    BATCH["Synthetic Batch Data"]
 
-The Bronze layer stores raw or minimally transformed data.
+    STREAM["Streaming Transactions"]
 
-Data is ingested from AWS S3 and streaming sources into Databricks.
+    S3["AWS S3"]
 
-Bronze contains:
+    KAFKA["Apache Kafka"]
+
+    KAFKAS3["Kafka → S3"]
+
+    DATABRICKS["Databricks"]
+
+    BRONZE["🥉 Bronze"]
+
+    SILVER["🥈 Silver"]
+
+    STAGING["dbt Staging"]
+
+    MARTS["dbt Marts / Gold"]
+
+    AI1["AI Layer 1<br/>Natural Language → SQL"]
+
+    ANALYTICS["Analytics Results"]
+
+    QUALITY["Data Quality"]
+
+    ANOMALY["Anomaly Detection"]
+
+    AI2["AI Layer 2<br/>AI Incident Summarizer"]
+
+    INCIDENT["AI Incident Table"]
+
+    BATCH --> S3
+
+    STREAM --> KAFKA
+
+    KAFKA --> KAFKAS3
+
+    KAFKAS3 --> S3
+
+    S3 --> DATABRICKS
+
+    DATABRICKS --> BRONZE
+
+    BRONZE --> SILVER
+
+    SILVER --> STAGING
+
+    STAGING --> MARTS
+
+    MARTS --> AI1
+
+    AI1 --> ANALYTICS
+
+    MARTS --> QUALITY
+
+    QUALITY --> ANOMALY
+
+    ANOMALY --> AI2
+
+    AI2 --> INCIDENT
+```
+
+---
+
+# 📊 Data Architecture
+
+FinStream follows a Medallion-style architecture extended with dbt transformation layers.
+
+```mermaid
+flowchart LR
+
+    RAW["Raw Data<br/>AWS S3 / Kafka"]
+
+    BRONZE["🥉 Bronze<br/>Raw / Ingested"]
+
+    SILVER["🥈 Silver<br/>Cleaned / Validated"]
+
+    STAGING["dbt Staging<br/>Prepared Sources"]
+
+    MARTS["dbt Marts<br/>Business Models"]
+
+    GOLD["🥇 Gold<br/>Business Ready"]
+
+    ANALYTICS["Analytics"]
+
+    AI["AI Applications"]
+
+    RAW --> BRONZE
+    BRONZE --> SILVER
+    SILVER --> STAGING
+    STAGING --> MARTS
+    MARTS --> GOLD
+    GOLD --> ANALYTICS
+    GOLD --> AI
+```
+
+---
+
+# 🥉 Bronze Layer
+
+The Bronze layer contains raw or minimally transformed financial data.
+
+### Data Sources
 
 - Customers
 - Accounts
@@ -194,648 +241,1090 @@ Bronze contains:
 - Exchange Rates
 - Streaming Transactions
 
-Metadata such as ingestion timestamp and source file information is also maintained.
-
-Purpose:
+### Responsibilities
 
 - Preserve source data
 - Maintain raw history
-- Provide a reliable ingestion layer
+- Capture ingestion metadata
+- Preserve source information
 - Support reprocessing
+- Provide a reliable ingestion layer
 
 ---
 
-## Silver Layer
+# 🥈 Silver Layer
 
-The Silver layer contains cleaned and validated data.
+The Silver layer contains cleaned, standardized, and validated data.
 
-Processing includes:
+### Processing
 
 - Data type standardization
-- Duplicate removal
+- Duplicate detection and removal
 - Null handling
 - Data validation
 - Business-rule validation
 - Relationship validation
 - Transaction attribute standardization
 
-Purpose:
+### Purpose
 
-- Create clean datasets
-- Enforce data quality
-- Prepare data for analytical modeling
+The Silver layer provides reliable datasets for dbt transformations and downstream analytics.
 
 ---
 
-## Gold Layer
+# 📓 Databricks Notebooks
 
-The Gold layer contains business-ready analytical models.
+The Databricks processing layer contains **four notebooks**.
 
-Example models include:
+```mermaid
+flowchart TB
 
-- dim_customer
-- dim_merchant
-- fact_transaction
+    S3["AWS S3<br/>Batch Data"]
+
+    KAFKA["Apache Kafka<br/>finstream.transactions"]
+
+    N1["bronze_data_ingestion"]
+
+    N2["stream_ingestion"]
+
+    BRONZE["🥉 Bronze Layer"]
+
+    N3["bronze_quality"]
+
+    QUALITY["Data Quality Results"]
+
+    N4["silver_transformation"]
+
+    SILVER["🥈 Silver Layer"]
+
+    S3 --> N1
+    N1 --> BRONZE
+
+    KAFKA --> N2
+    N2 --> BRONZE
+
+    BRONZE --> N3
+    N3 --> QUALITY
+
+    BRONZE --> N4
+    N4 --> SILVER
+```
+
+## 1. `bronze_data_ingestion`
+
+Responsible for **batch ingestion** from AWS S3 into the Bronze layer.
+
+```text
+AWS S3
+   ↓
+bronze_data_ingestion
+   ↓
+🥉 Bronze
+```
+
+### Responsibilities
+
+- Read raw Parquet files from S3
+- Ingest source datasets
+- Add ingestion metadata
+- Preserve source information
+- Create Bronze datasets
+
+---
+
+## 2. `stream_ingestion`
+
+Responsible for processing transaction data from Apache Kafka.
+
+```text
+Apache Kafka
+     ↓
+finstream.transactions
+     ↓
+stream_ingestion
+     ↓
+AWS S3
+     ↓
+🥉 Bronze
+```
+
+### Responsibilities
+
+- Consume Kafka transaction messages
+- Process streaming transaction data
+- Write streaming data to S3
+- Make streaming data available to the Bronze layer
+
+### Kafka Topic
+
+```text
+finstream.transactions
+```
+
+### Streaming S3 Location
+
+```text
+s3://finstream-data-ingestion/raw/stream_transactions/
+```
+
+---
+
+## 3. `bronze_quality`
+
+Responsible for performing **data-quality checks on Bronze data**.
+
+```text
+🥉 Bronze
+    ↓
+bronze_quality
+    ↓
+Data Quality Results
+```
+
+### Checks
+
+- Null values
+- Duplicate records
+- Required fields
+- Data types
+- Schema consistency
+- Invalid records
+- Data-quality issues
+
+---
+
+## 4. `silver_transformation`
+
+Responsible for transforming Bronze data into cleaned Silver datasets.
+
+```text
+🥉 Bronze
+    ↓
+silver_transformation
+    ↓
+🥈 Silver
+```
+
+### Responsibilities
+
+- Clean raw data
+- Standardize data types
+- Handle null values
+- Remove duplicates
+- Apply transformations
+- Validate relationships
+- Create Silver datasets
+
+---
+
+# 🧹 dbt Staging Layer
+
+The dbt Staging layer prepares Silver data for analytical modeling.
+
+```mermaid
+flowchart LR
+
+    SILVER["🥈 Silver Tables"]
+
+    CUSTOMERS["stg_customers"]
+
+    ACCOUNTS["stg_accounts"]
+
+    MERCHANTS["stg_merchants"]
+
+    TRANSACTIONS["stg_transactions"]
+
+    EVENTS["stg_transaction_events"]
+
+    RATES["stg_exchange_rates"]
+
+    SILVER --> CUSTOMERS
+    SILVER --> ACCOUNTS
+    SILVER --> MERCHANTS
+    SILVER --> TRANSACTIONS
+    SILVER --> EVENTS
+    SILVER --> RATES
+```
+
+### Responsibilities
+
+- Rename columns
+- Standardize data types
+- Apply basic transformations
+- Establish naming conventions
+- Prepare source data
+- Create reusable datasets
+
+### Example Models
+
+```text
+stg_customers
+stg_accounts
+stg_merchants
+stg_transactions
+stg_transaction_events
+stg_exchange_rates
+```
+
+---
+
+# 🏢 dbt Marts Layer
+
+The dbt Marts layer contains business-oriented analytical models.
+
+```mermaid
+flowchart TB
+
+    CUSTOMERS["stg_customers"]
+
+    ACCOUNTS["stg_accounts"]
+
+    MERCHANTS["stg_merchants"]
+
+    TRANSACTIONS["stg_transactions"]
+
+    EVENTS["stg_transaction_events"]
+
+    DIM_CUSTOMER["dim_customer"]
+
+    DIM_MERCHANT["dim_merchant"]
+
+    FACT_TRANSACTION["fact_transaction"]
+
+    CUSTOMERS --> DIM_CUSTOMER
+
+    MERCHANTS --> DIM_MERCHANT
+
+    TRANSACTIONS --> FACT_TRANSACTION
+
+    ACCOUNTS --> FACT_TRANSACTION
+
+    EVENTS --> FACT_TRANSACTION
+```
+
+### Responsibilities
+
+- Business-level transformations
+- Fact table creation
+- Dimension table creation
+- Joining staging models
+- Creating analytical datasets
+- Preparing data for analytics and AI
+
+### Example Models
+
+```text
+dim_customer
+dim_merchant
+fact_transaction
+```
+
+---
+
+# 🥇 Gold Layer
+
+The dbt Marts form the business-ready Gold analytical layer.
+
+```mermaid
+flowchart LR
+
+    STAGING["dbt Staging"]
+
+    MARTS["dbt Marts"]
+
+    CUSTOMER["dim_customer"]
+
+    MERCHANT["dim_merchant"]
+
+    TRANSACTION["fact_transaction"]
+
+    ANALYTICS["Analytics"]
+
+    AI["AI Applications"]
+
+    STAGING --> MARTS
+
+    MARTS --> CUSTOMER
+    MARTS --> MERCHANT
+    MARTS --> TRANSACTION
+
+    CUSTOMER --> ANALYTICS
+    MERCHANT --> ANALYTICS
+    TRANSACTION --> ANALYTICS
+
+    CUSTOMER --> AI
+    MERCHANT --> AI
+    TRANSACTION --> AI
+```
 
 The Gold layer is consumed by:
 
 - Analytics
 - Reporting
-- Natural Language to SQL
+- Natural Language → SQL
+- Data Quality
 - Anomaly Detection
 - AI Incident Summarizer
 
 ---
 
-# Batch Pipeline
+# 📦 Batch Pipeline
 
-The batch pipeline generates synthetic financial datasets and stores them in AWS S3.
+```mermaid
+flowchart LR
 
-Pipeline:
+    FAKER["Faker<br/>Synthetic Data"]
 
-    Faker
-      |
-      v
-    Python
-      |
-      v
-  Parquet Files
-      |
-      v
-     AWS S3
-      |
-      v
-  Databricks
-      |
-      v
-    Bronze
-      |
-      v
-    Silver
-      |
-      v
-     dbt
-      |
-      v
-     Gold
+    PYTHON["Python Data Generator"]
 
-AWS S3 acts as the raw data lake storage layer.
+    PARQUET["Parquet"]
 
----
+    S3["AWS S3"]
 
-# Streaming Pipeline
+    DATABRICKS["Databricks"]
 
-FinStream also supports transaction streaming using Apache Kafka.
+    BRONZE["Bronze"]
 
-Pipeline:
+    SILVER["Silver"]
 
-    Transaction Producer
-            |
-            v
-       Apache Kafka
-            |
-            v
-    finstream.transactions
-            |
-            v
-       Kafka Consumer
-            |
-            v
-           AWS S3
-            |
-            v
-        Databricks
-            |
-            v
-         Bronze
-            |
-            v
-         Silver
-            |
-            v
-          Gold
+    STAGING["dbt Staging"]
 
-Kafka topic:
+    MARTS["dbt Marts"]
 
-    finstream.transactions
+    GOLD["Gold"]
 
-Streaming S3 location:
-
-    s3://finstream-data-ingestion/raw/stream_transactions/
-
-The streaming pipeline allows real-time transaction events to become part of the same analytical data platform as the batch data.
+    FAKER --> PYTHON
+    PYTHON --> PARQUET
+    PARQUET --> S3
+    S3 --> DATABRICKS
+    DATABRICKS --> BRONZE
+    BRONZE --> SILVER
+    SILVER --> STAGING
+    STAGING --> MARTS
+    MARTS --> GOLD
+```
 
 ---
 
-# dbt Transformation Layer
+# ⚡ Streaming Pipeline
 
-dbt is used to build and manage analytical transformations.
+FinStream uses Apache Kafka for transaction streaming.
 
-Responsibilities include:
+```mermaid
+flowchart LR
+
+    PRODUCER["Transaction Producer"]
+
+    KAFKA["Apache Kafka"]
+
+    TOPIC["finstream.transactions"]
+
+    CONSUMER["Kafka Consumer"]
+
+    S3["AWS S3<br/>raw/stream_transactions/"]
+
+    BRONZE["🥉 Bronze"]
+
+    SILVER["🥈 Silver"]
+
+    STAGING["dbt Staging"]
+
+    MARTS["dbt Marts"]
+
+    PRODUCER --> KAFKA
+    KAFKA --> TOPIC
+    TOPIC --> CONSUMER
+    CONSUMER --> S3
+    S3 --> BRONZE
+    BRONZE --> SILVER
+    SILVER --> STAGING
+    STAGING --> MARTS
+```
+
+### Kafka Topic
+
+```text
+finstream.transactions
+```
+
+### S3 Streaming Location
+
+```text
+s3://finstream-data-ingestion/raw/stream_transactions/
+```
+
+---
+
+# 🔧 dbt Transformation Layer
+
+```mermaid
+flowchart LR
+
+    SILVER["🥈 Silver"]
+
+    STAGING["dbt Staging"]
+
+    MARTS["dbt Marts"]
+
+    GOLD["🥇 Gold"]
+
+    SILVER --> STAGING
+    STAGING --> MARTS
+    MARTS --> GOLD
+```
+
+dbt is responsible for:
 
 - SQL transformations
-- Gold-layer modeling
+- Staging models
+- Marts models
+- Gold analytical models
 - Jinja templating
 - Macros
 - Data tests
 - Incremental models
-- Model dependencies
-
-Example Gold models:
-
-    gold.dim_customer
-    gold.dim_merchant
-    gold.fact_transaction
-
-The Gold layer provides trusted datasets for analytics and AI.
+- Model dependency management
 
 ---
 
-# Data Quality
+# 🧪 Data Quality
 
-Data quality checks are performed before downstream AI and analytics processing.
+Data-quality checks are performed on the Bronze data before downstream processing.
 
-The platform checks for issues such as:
+```mermaid
+flowchart LR
 
-- Missing values
-- Duplicate records
-- Invalid relationships
-- Invalid transaction states
-- Unexpected transaction patterns
-- Invalid data types
-- Business-rule violations
+    BRONZE["Bronze Data"]
 
-The objective is to prevent unreliable data from reaching downstream consumers.
+    NULLS["Null Validation"]
 
----
+    DUPLICATES["Duplicate Validation"]
 
-# Anomaly Detection
+    SCHEMA["Schema Validation"]
 
-FinStream includes machine-learning-based anomaly detection.
+    RELATIONSHIPS["Relationship Validation"]
 
-Isolation Forest is used to identify unusual transaction behavior.
+    BUSINESS["Business Rule Validation"]
 
-Pipeline:
+    RESULTS["Data Quality Results"]
 
-    Gold Data
-       |
-       v
-    Feature Preparation
-       |
-       v
-    Anomaly Detection
-       |
-       v
-    Anomaly Report
-       |
-       v
-    AI Incident Summarizer
-
-The anomaly report becomes an input to the second AI layer.
+    BRONZE --> NULLS
+    NULLS --> DUPLICATES
+    DUPLICATES --> SCHEMA
+    SCHEMA --> RELATIONSHIPS
+    RELATIONSHIPS --> BUSINESS
+    BUSINESS --> RESULTS
+```
 
 ---
 
-# AI Architecture
+# 🔍 Anomaly Detection
 
-FinStream contains two independent AI layers.
+FinStream uses **Isolation Forest** for anomaly detection.
 
-                    GOLD DATA
-                       |
-             +---------+---------+
-             |                   |
-             v                   v
-       AI LAYER 1           AI LAYER 2
-       NL → SQL             Incident AI
-             |                   |
-             v                   v
-        SQL Query          Incident Summary
-             |                   |
-             v                   v
-        Data Result        AI Incident Table
+```mermaid
+flowchart LR
+
+    GOLD["Gold Transaction Data"]
+
+    FEATURES["Feature Preparation"]
+
+    MODEL["Isolation Forest"]
+
+    SCORES["Anomaly Scores"]
+
+    REPORT["Anomaly Report"]
+
+    AI["AI Incident Summarizer"]
+
+    GOLD --> FEATURES
+    FEATURES --> MODEL
+    MODEL --> SCORES
+    SCORES --> REPORT
+    REPORT --> AI
+```
 
 ---
 
-# AI Layer 1 — Natural Language to SQL
+# 🤖 AI Architecture
 
-The first AI layer allows users to interact with financial data using natural language.
+FinStream contains two separate AI layers.
 
-Instead of manually writing SQL, a user can ask a question in plain English.
+```mermaid
+flowchart TB
 
-Example:
+    GOLD["🥇 Gold Data"]
 
-    What is the total transaction amount for each transaction type?
+    AI1["AI Layer 1<br/>Natural Language → SQL"]
 
-The AI generates SQL similar to:
+    SQL["Generated SQL"]
 
-    SELECT
-        transaction_type,
-        SUM(amount) AS total_amount
-    FROM gold.fact_transaction
-    GROUP BY transaction_type;
+    RESULTS["Analytics Results"]
 
-The query is then executed against the Gold layer.
+    QUALITY["Data Quality"]
 
-Flow:
+    ANOMALY["Anomaly Detection"]
 
-    User Question
-          |
-          v
-        Gemini
-          |
-          v
-      SQL Generation
-          |
-          v
-      SQL Validation
-          |
-          v
-       Gold Layer
-          |
-          v
-      Query Result
+    AI2["AI Layer 2<br/>AI Incident Summarizer"]
 
-Purpose:
+    SUMMARY["AI Incident Summary"]
 
-- Natural Language to SQL
+    TABLE["AI Incident Table"]
+
+    GOLD --> AI1
+    AI1 --> SQL
+    SQL --> RESULTS
+
+    GOLD --> QUALITY
+    QUALITY --> ANOMALY
+    ANOMALY --> AI2
+    AI2 --> SUMMARY
+    SUMMARY --> TABLE
+```
+
+---
+
+# 🧠 AI Layer 1 — Natural Language → SQL
+
+The first AI layer allows users to query financial data using natural language.
+
+### Example
+
+```text
+What is the total transaction amount for each transaction type?
+```
+
+The AI generates SQL such as:
+
+```sql
+SELECT
+    transaction_type,
+    SUM(amount) AS total_amount
+FROM gold.fact_transaction
+GROUP BY transaction_type;
+```
+
+### Architecture
+
+```mermaid
+flowchart LR
+
+    USER["User Question"]
+
+    LLM["Google Gemini / LLM"]
+
+    SQL["SQL Generation"]
+
+    VALIDATION["SQL Validation"]
+
+    GOLD["Gold Layer"]
+
+    RESULT["Query Result"]
+
+    USER --> LLM
+    LLM --> SQL
+    SQL --> VALIDATION
+    VALIDATION --> GOLD
+    GOLD --> RESULT
+```
+
+### Capabilities
+
+- Natural Language → SQL
+- Schema-aware SQL generation
+- LLM-powered analytics
 - Self-service analytics
-- LLM-powered data access
-- Schema-aware query generation
-- Business-user friendly analytics
+- Business-user friendly data access
 
 ---
 
-# AI Layer 2 — AI Incident Summarizer
+# 🚨 AI Layer 2 — AI Incident Summarizer
 
-The second AI layer focuses on data incidents and anomalies.
+The second AI layer converts anomaly-detection results into human-readable incident summaries.
 
-It receives anomaly information from the anomaly-detection pipeline and uses Google Gemini to generate an understandable incident explanation.
+```mermaid
+flowchart LR
 
-Flow:
+    GOLD["Gold / Processed Data"]
 
-    Gold Data
-       |
-       v
-    Data Quality
-       |
-       v
-    Anomaly Detection
-       |
-       v
-    Anomaly Report
-       |
-       v
-    AI Incident Summarizer
-       |
-       v
-    Incident Summary
-       |
-       v
-    AI Incident Table
+    QUALITY["Data Quality"]
 
-The AI Incident Summarizer can explain:
+    DETECTION["Anomaly Detection"]
+
+    REPORT["Anomaly Report"]
+
+    GEMINI["Google Gemini"]
+
+    SUMMARY["AI Incident Summary"]
+
+    TABLE["AI Incident Table"]
+
+    GOLD --> QUALITY
+    QUALITY --> DETECTION
+    DETECTION --> REPORT
+    REPORT --> GEMINI
+    GEMINI --> SUMMARY
+    SUMMARY --> TABLE
+```
+
+### Incident Information
+
+The generated summary can explain:
 
 - What happened
 - Why the record was considered anomalous
 - Which records were affected
-- Important transaction information
 - Possible business impact
+- Relevant transaction context
 - Suggested investigation direction
 
-This turns raw anomaly output into a human-readable incident report.
+---
+
+# 🗃️ AI Incident Layer
+
+AI-generated incident information is maintained separately from the core Bronze, Silver, and Gold analytical layers.
+
+```mermaid
+flowchart LR
+
+    GOLD["Gold Data"]
+
+    QUALITY["Data Quality"]
+
+    ANOMALY["Anomaly Detection"]
+
+    REPORT["Anomaly Report"]
+
+    SUMMARIZER["AI Incident Summarizer"]
+
+    AI_LAYER["AI Layer"]
+
+    TABLE["AI Incident Summary Table"]
+
+    GOLD --> QUALITY
+    QUALITY --> ANOMALY
+    ANOMALY --> REPORT
+    REPORT --> SUMMARIZER
+    SUMMARIZER --> AI_LAYER
+    AI_LAYER --> TABLE
+```
 
 ---
 
-# AI Incident Table
+# 🔄 Apache Airflow Orchestration
 
-The AI incident summaries are designed to be stored separately in an AI layer.
+Apache Airflow orchestrates the major pipeline components.
 
-Conceptually:
+```mermaid
+flowchart LR
 
-    Gold
-      |
-      v
-    Anomaly Detection
-      |
-      v
-    AI Incident Summarizer
-      |
-      v
-    AI Layer
-      |
-      v
-    AI Incident Summary Table
+    AIRFLOW["Apache Airflow"]
 
-This keeps AI-generated information separate from the core Bronze, Silver, and Gold analytical data.
+    INGESTION["Data Ingestion"]
+
+    BRONZE["Bronze Processing"]
+
+    SILVER["Silver Processing"]
+
+    STAGING["dbt Staging"]
+
+    MARTS["dbt Marts / Gold"]
+
+    QUALITY["Data Quality"]
+
+    ANOMALY["Anomaly Detection"]
+
+    AI["AI Incident Summarizer"]
+
+    AIRFLOW --> INGESTION
+    INGESTION --> BRONZE
+    BRONZE --> SILVER
+    SILVER --> STAGING
+    STAGING --> MARTS
+    MARTS --> QUALITY
+    QUALITY --> ANOMALY
+    ANOMALY --> AI
+```
+
+### Pipeline Sequence
+
+```text
+Data Ingestion
+      ↓
+Bronze
+      ↓
+Silver
+      ↓
+dbt Staging
+      ↓
+dbt Marts / Gold
+      ↓
+Data Quality
+      ↓
+Anomaly Detection
+      ↓
+AI Incident Summarization
+```
 
 ---
 
-# Apache Airflow Orchestration
-
-Apache Airflow is used to orchestrate the FinStream platform.
-
-The orchestration layer coordinates the execution of the data-processing and AI workflows.
-
-Example workflow:
-
-    Ingestion
-       |
-       v
-    Bronze Processing
-       |
-       v
-    Silver Processing
-       |
-       v
-    Gold Transformation
-       |
-       v
-    Data Quality
-       |
-       v
-    Anomaly Detection
-       |
-       v
-    AI Incident Summarization
-
-Airflow triggers the required Databricks jobs and coordinates the overall pipeline execution.
-
----
-
-# Databricks
+# 🧱 Databricks
 
 Databricks is the primary data-processing platform.
 
 It is used for:
 
-- Reading data from AWS S3
-- Bronze ingestion
+- AWS S3 ingestion
+- Bronze processing
 - Silver transformations
-- Gold processing
-- Spark-based processing
+- Spark processing
 - Streaming processing
+- Data preparation
 - Analytical queries
-- AI data preparation
 
-Databricks notebooks are maintained as part of the project repository so that the processing logic is version-controlled along with the rest of the codebase.
-
----
-
-# Project Structure
-
-    finstream-data-platform/
-    |
-    +-- src/
-    |   +-- finstream_data_platform/
-    |       +-- ingestion/
-    |       +-- transformation/
-    |       +-- streaming/
-    |       +-- quality/
-    |       +-- ai/
-    |
-    +-- notebooks/
-    |   +-- bronze/
-    |   +-- silver/
-    |   +-- gold/
-    |   +-- streaming/
-    |   +-- ai/
-    |
-    +-- dbt/
-    |   +-- models/
-    |   +-- macros/
-    |   +-- tests/
-    |   +-- dbt_project.yml
-    |
-    +-- dags/
-    |   +-- finstream_stream_orchestration.py
-    |
-    +-- Kafka/
-    |   +-- docker-compose.yml
-    |
-    +-- Data/
-    |   +-- raw/
-    |
-    +-- tests/
-    |
-    +-- .env.example
-    +-- .gitignore
-    +-- pyproject.toml
-    +-- README.md
+Databricks notebooks are version-controlled in GitHub.
 
 ---
 
-# Security
+# 🗂️ Databricks Notebook Structure
 
-Secrets and credentials are not committed to GitHub.
+```text
+Databricks
+│
+├── bronze_data_ingestion
+│       │
+│       └── AWS S3 → Bronze
+│
+├── stream_ingestion
+│       │
+│       └── Kafka → S3 → Bronze
+│
+├── bronze_quality
+│       │
+│       └── Bronze → Data Quality
+│
+└── silver_transformation
+        │
+        └── Bronze → Silver
+```
 
-Sensitive values are provided using environment variables.
+---
+
+# 🗄️ Data Sources
+
+FinStream uses synthetic financial data.
+
+| Dataset | Description |
+|---|---|
+| Customers | Customer master information |
+| Accounts | Financial account information |
+| Merchants | Merchant information |
+| Transactions | Financial transaction records |
+| Transaction Events | Transaction lifecycle events |
+| Exchange Rates | Currency exchange-rate information |
+
+---
+
+# 💳 Transaction Schema
+
+The transaction dataset contains fields such as:
+
+| Field | Description |
+|---|---|
+| `transaction_id` | Unique transaction identifier |
+| `account_id` | Associated account |
+| `merchant_id` | Associated merchant |
+| `transaction_timestamp` | Transaction timestamp |
+| `transaction_type` | Type of transaction |
+| `amount` | Transaction amount |
+| `currency` | Transaction currency |
+| `transaction_status` | Transaction status |
+| `payment_method` | Payment method |
+| `description` | Transaction description |
+
+---
+
+# 🛠️ Technology Stack
+
+| Category | Technology |
+|---|---|
+| Programming | Python |
+| Cloud Storage | AWS S3 |
+| Data Processing | Databricks / Apache Spark |
+| Streaming | Apache Kafka |
+| Containerization | Docker / Docker Compose |
+| Transformation | dbt |
+| Orchestration | Apache Airflow |
+| Data Format | Parquet |
+| Data Generation | Faker |
+| Data Quality | Python / SQL |
+| Anomaly Detection | Isolation Forest |
+| Generative AI | Google Gemini |
+| Version Control | Git / GitHub |
+| Configuration | python-dotenv |
+
+---
+
+# 📁 Project Structure
+
+```text
+finstream-data-platform/
+│
+├── src/
+│   └── finstream_data_platform/
+│       │
+│       ├── ingestion/
+│       ├── transformation/
+│       ├── streaming/
+│       ├── quality/
+│       └── ai/
+│
+├── notebooks/
+│   ├── bronze_data_ingestion
+│   ├── stream_ingestion
+│   ├── bronze_quality
+│   └── silver_transformation
+│
+├── dbt/
+│   ├── models/
+│   │   ├── staging/
+│   │   └── marts/
+│   │
+│   ├── macros/
+│   ├── tests/
+│   └── dbt_project.yml
+│
+├── dags/
+│   └── finstream_stream_orchestration.py
+│
+├── Kafka/
+│   └── docker-compose.yml
+│
+├── Data/
+│   └── raw/
+│
+├── tests/
+│
+├── .env.example
+├── .gitignore
+├── pyproject.toml
+└── README.md
+```
+
+---
+
+# 🔐 Security
+
+Sensitive credentials are not stored in GitHub.
+
+Environment variables are used for configuration.
 
 Example:
 
-    AWS_ACCESS_KEY_ID=
-    AWS_SECRET_ACCESS_KEY=
-    S3_BUCKET_NAME=
-    DATABRICKS_HOST=
-    DATABRICKS_TOKEN=
-    GEMINI_API_KEY=
-    GEMINI_MODEL=
+```text
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+S3_BUCKET_NAME=
+DATABRICKS_HOST=
+DATABRICKS_TOKEN=
+GEMINI_API_KEY=
+GEMINI_MODEL=
+```
 
-The actual .env file should never be committed.
+The actual `.env` file must never be committed.
 
-Only .env.example should be included in the repository.
-
----
-
-# Installation
-
-## Clone the repository
-
-    git clone <your-github-repository-url>
-
-    cd finstream-data-platform
-
-## Create environment
-
-Install the project dependencies using the project's configured Python environment.
-
-Configure the required environment variables using:
-
-    .env.example
+Only `.env.example` should be included in the repository.
 
 ---
 
-# Running Kafka
+# 🚀 Getting Started
 
-Navigate to the Kafka directory:
+## 1. Clone the Repository
 
-    cd Kafka
+```bash
+git clone <your-github-repository-url>
 
-Start Kafka:
+cd finstream-data-platform
+```
 
-    docker compose up -d
+---
 
-Check Kafka:
+## 2. Configure Environment Variables
 
-    docker compose ps
+Create a local `.env` file based on:
 
-List topics:
+```text
+.env.example
+```
 
-    docker exec finstream-kafka /opt/kafka/bin/kafka-topics.sh \
-        --list \
-        --bootstrap-server localhost:9092
+Configure:
+
+- AWS credentials
+- S3 bucket
+- Databricks configuration
+- Gemini API configuration
+
+---
+
+## 3. Start Kafka
+
+```bash
+cd Kafka
+docker compose up -d
+```
+
+Check containers:
+
+```bash
+docker compose ps
+```
+
+---
+
+## 4. Verify Kafka Topic
+
+```bash
+docker exec finstream-kafka /opt/kafka/bin/kafka-topics.sh \
+    --list \
+    --bootstrap-server localhost:9092
+```
 
 Expected topic:
 
-    finstream.transactions
+```text
+finstream.transactions
+```
 
 ---
 
-# Running the Data Pipeline
+# 🔄 Running the Pipeline
 
-The overall pipeline follows:
+The complete pipeline follows:
 
-    Data Generation
-          |
-          v
-       AWS S3
-          |
-          v
-       Bronze
-          |
-          v
-       Silver
-          |
-          v
-        dbt
-          |
-          v
-        Gold
-          |
-          v
+```text
+Batch / Streaming Sources
+          ↓
+     AWS S3 / Kafka
+          ↓
+       Databricks
+          ↓
+        Bronze
+          ↓
+        Silver
+          ↓
+     dbt Staging
+          ↓
+      dbt Marts
+          ↓
+         Gold
+          ↓
     Data Quality
-          |
-          v
-    Anomaly Detection
-          |
-          v
-    AI Incident Summarizer
+          ↓
+  Anomaly Detection
+          ↓
+AI Incident Summarizer
+```
 
-Streaming transactions follow:
-
-    Producer
-       |
-       v
-     Kafka
-       |
-       v
-    Kafka → S3
-       |
-       v
-    Databricks
-       |
-       v
-    Bronze → Silver → Gold
+The Natural Language → SQL layer operates on the Gold analytical data.
 
 ---
 
-# Example AI Questions
+# 📈 Example AI Questions
 
-The Natural Language to SQL layer can support questions such as:
+```text
+What is the total transaction amount?
+```
 
-    What is the total transaction amount?
+```text
+What are the most common transaction types?
+```
 
-    What are the most common transaction types?
+```text
+Which merchants have the highest transaction volume?
+```
 
-    Which merchants have the highest transaction volume?
+```text
+Which customers have the highest transaction value?
+```
 
-    Which customers have the highest transaction value?
+```text
+How many transactions failed?
+```
 
-    How many transactions failed?
+```text
+What is the average transaction amount by currency?
+```
 
-    What is the average transaction amount by currency?
-
-    What are the daily transaction volumes?
-
-The exact questions supported depend on the available Gold-layer schema and SQL-generation implementation.
+```text
+What are the daily transaction volumes?
+```
 
 ---
 
-# Example Incident Analysis
+# 🚨 Example Incident Analysis
 
 The anomaly-detection system may identify an unusual transaction pattern.
 
-Instead of exposing only a technical anomaly record:
+Example technical output:
 
-    transaction_id = XYZ
-    anomaly_score = -0.82
-    anomaly = True
+```text
+transaction_id = XYZ
+anomaly_score = -0.82
+anomaly = True
+```
 
-the AI Incident Summarizer converts the information into a business-readable explanation.
+The AI Incident Summarizer converts this information into a human-readable explanation.
 
-Example structure:
+Example:
 
-    Incident:
-    Unusual transaction behavior detected.
+```text
+Incident:
+Unusual transaction behavior detected.
 
-    Summary:
-    The transaction deviates from the expected transaction pattern
-    based on the available transaction features.
+Summary:
+The transaction deviates from the expected transaction pattern
+based on the available transaction features.
 
-    Possible Impact:
-    The transaction may require further investigation.
+Possible Impact:
+The transaction may require further investigation.
 
-    Recommended Action:
-    Review the transaction and related account activity.
-
-The actual summary is generated dynamically by the AI model.
-
----
-
-# GitHub
-
-The project uses Git for version control.
-
-The repository contains:
-
-- Python source code
-- Databricks notebooks
-- dbt models
-- Airflow DAGs
-- Kafka configuration
-- AI components
-- Project documentation
-
-Large generated datasets, credentials, local environments, and other unnecessary files should be excluded using .gitignore.
+Recommended Action:
+Review the transaction and related account activity.
+```
 
 ---
 
-# Project Objectives
+# 🎯 Project Objectives
 
-This project demonstrates practical experience with:
+FinStream demonstrates practical knowledge of:
 
-- End-to-end data engineering
-- Data lake architecture
-- Medallion architecture
-- Batch data pipelines
-- Streaming data pipelines
+- End-to-end Data Engineering
+- Data Lake Architecture
+- Medallion Architecture
+- Batch Data Pipelines
+- Streaming Data Pipelines
 - Apache Kafka
 - AWS S3
 - Databricks
 - Apache Spark
 - dbt
+- dbt Staging
+- dbt Marts
 - Apache Airflow
-- Data quality engineering
-- Machine-learning-based anomaly detection
+- Data Quality Engineering
+- Machine Learning
+- Isolation Forest
 - Generative AI
-- Natural Language to SQL
-- AI-assisted incident analysis
-- Cloud data platforms
+- Natural Language → SQL
+- AI Incident Analysis
+- Cloud Data Platforms
 - Git and GitHub
 
 ---
 
-# Future Improvements
+# 🔮 Future Improvements
 
-Potential improvements include:
+Potential future improvements include:
 
 - Real-time anomaly detection directly from Kafka
 - Real-time AI incident summarization
@@ -844,7 +1333,7 @@ Potential improvements include:
 - Data observability dashboards
 - CI/CD for Databricks and dbt
 - Automated pipeline testing
-- SQL safety validation for Natural Language to SQL
+- SQL safety validation for Natural Language → SQL
 - Role-based access control
 - RAG-based business knowledge
 - Pipeline monitoring and alerting
@@ -854,94 +1343,178 @@ Potential improvements include:
 
 ---
 
-# Final Architecture
+# 🏆 Final Architecture
 
-    +-----------------------------------------------------------+
-    |                    DATA SOURCES                           |
-    |                                                           |
-    |  Synthetic Batch Data              Streaming Transactions |
-    +-------------------+-------------------------+-------------+
-                        |                         |
-                        v                         v
-                    AWS S3                    Apache Kafka
-                        |                         |
-                        |                         v
-                        |                    Kafka → S3
-                        |                         |
-                        +------------+------------+
-                                     |
-                                     v
-                           +-------------------+
-                           |    DATABRICKS     |
-                           +---------+---------+
-                                     |
-                                     v
-                           +-------------------+
-                           |      BRONZE       |
-                           |   Raw Ingestion   |
-                           +---------+---------+
-                                     |
-                                     v
-                           +-------------------+
-                           |      SILVER       |
-                           | Clean & Validate  |
-                           +---------+---------+
-                                     |
-                                     v
-                           +-------------------+
-                           |       GOLD        |
-                           | Business Models   |
-                           +---------+---------+
-                                     |
-                   +-----------------+-----------------+
-                   |                                   |
-                   v                                   v
-          +-------------------+               +-------------------+
-          |    AI LAYER 1     |               |    AI LAYER 2     |
-          |                   |               |                   |
-          | Natural Language  |               | AI Incident       |
-          |      → SQL        |               | Summarizer         |
-          +---------+---------+               +---------+---------+
-                    |                                   |
-                    v                                   v
-              SQL Analytics                       AI Incident
-                                                   Summary Table
+```mermaid
+flowchart TB
 
-                         +-------------------+
-                         |   APACHE AIRFLOW  |
-                         |   ORCHESTRATION   |
-                         +-------------------+
+    BATCH["Synthetic Batch Data"]
+
+    STREAM["Streaming Transactions"]
+
+    S3["AWS S3"]
+
+    KAFKA["Apache Kafka<br/>finstream.transactions"]
+
+    KAFKA_S3["Kafka → S3"]
+
+    DATABRICKS["Databricks"]
+
+    N1["bronze_data_ingestion"]
+
+    N2["stream_ingestion"]
+
+    BRONZE["🥉 Bronze Layer"]
+
+    N3["bronze_quality"]
+
+    N4["silver_transformation"]
+
+    SILVER["🥈 Silver Layer"]
+
+    STAGING["dbt Staging Layer"]
+
+    MARTS["dbt Marts Layer"]
+
+    GOLD["🥇 Gold Layer"]
+
+    AI1["AI Layer 1<br/>Natural Language → SQL"]
+
+    SQL["Generated SQL"]
+
+    RESULTS["Analytics Results"]
+
+    QUALITY["Data Quality"]
+
+    ANOMALY["Isolation Forest<br/>Anomaly Detection"]
+
+    AI2["AI Layer 2<br/>AI Incident Summarizer"]
+
+    INCIDENT["AI Incident Summary Table"]
+
+    AIRFLOW["Apache Airflow"]
+
+    BATCH --> S3
+
+    STREAM --> KAFKA
+
+    KAFKA --> KAFKA_S3
+
+    KAFKA_S3 --> S3
+
+    S3 --> N1
+
+    KAFKA_S3 --> N2
+
+    N1 --> BRONZE
+
+    N2 --> BRONZE
+
+    BRONZE --> N3
+
+    BRONZE --> N4
+
+    N3 --> QUALITY
+
+    N4 --> SILVER
+
+    SILVER --> STAGING
+
+    STAGING --> MARTS
+
+    MARTS --> GOLD
+
+    GOLD --> AI1
+
+    AI1 --> SQL
+
+    SQL --> RESULTS
+
+    GOLD --> QUALITY
+
+    QUALITY --> ANOMALY
+
+    ANOMALY --> AI2
+
+    AI2 --> INCIDENT
+
+    AIRFLOW -. Orchestrates .-> N1
+    AIRFLOW -. Orchestrates .-> N2
+    AIRFLOW -. Orchestrates .-> N3
+    AIRFLOW -. Orchestrates .-> N4
+    AIRFLOW -. Orchestrates .-> STAGING
+    AIRFLOW -. Orchestrates .-> MARTS
+    AIRFLOW -. Orchestrates .-> QUALITY
+    AIRFLOW -. Orchestrates .-> ANOMALY
+    AIRFLOW -. Orchestrates .-> AI2
+```
 
 ---
 
-# Key Takeaway
+# 💡 Key Takeaway
 
 FinStream combines:
 
-    Data Engineering
-          +
-    Cloud Data Lake
-          +
-    Batch Processing
-          +
-    Real-Time Streaming
-          +
-    Data Quality
-          +
-    Machine Learning
-          +
-    Generative AI
-          +
-    Workflow Orchestration
+```text
+Data Engineering
+       +
+AWS S3
+       +
+Apache Kafka
+       +
+Databricks
+       +
+Bronze / Silver Architecture
+       +
+dbt Staging
+       +
+dbt Marts / Gold
+       +
+Data Quality
+       +
+Isolation Forest
+       +
+Generative AI
+       +
+Apache Airflow
+```
 
 into a single end-to-end financial data platform.
 
-The platform demonstrates how raw financial data can move from ingestion to analytics and finally to AI-powered interaction and incident intelligence.
+The complete journey of financial data is:
+
+```text
+Generate
+   ↓
+Ingest
+   ↓
+Store
+   ↓
+Process
+   ↓
+Bronze
+   ↓
+Quality Check
+   ↓
+Silver
+   ↓
+dbt Staging
+   ↓
+dbt Marts / Gold
+   ↓
+Analyze
+   ↓
+Detect Anomalies
+   ↓
+Explain Incidents with AI
+   ↓
+Query Data using Natural Language
+```
 
 ---
 
-## Author
+# 👨‍💻 Author
 
-Harshit
+**Harshit**
 
-FinStream — Financial Data Engineering + AI Platform
+### FinStream — Financial Data Engineering + AI Platform
